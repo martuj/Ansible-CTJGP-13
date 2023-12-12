@@ -1,0 +1,228 @@
+Ansible Lab Steps
+=================
+Login to AWS Console
+
+################################################
+Lab 1: Installation and Configuration of Ansible
+################################################
+
+# Launch instance RHEL 9 machine in us-east-1. Choose t2.micro. In security group, 
+# allow SSH (22) and HTTP (80) for all incoming traffic. Add Tag Name: Ansible-ControlNode
+
+# Once the EC2 is up & running, SSH into one of it and set the hostname as 'Control-Node'. 
+sudo hostnamectl set-hostname Control-Node
+# Now you can exit and login again. It will show the new hostname.
+# or you can type 'bash' and open another shell which shows new hostname.
+
+# Update the package repository with latest available versions
+sudo yum check-update
+
+# Install latest version of Python. 
+sudo yum install python3-pip wget
+python3 --version
+sudo pip3 install --upgrade pip
+
+
+# Install awscli, boto, boto3 and ansible
+# Boto/Boto3 are AWS SDK which will be needed while accessing AWS APIs
+sudo pip3 install awscli boto boto3
+sudo pip3 install ansible==4.10.0
+
+pip show ansible
+
+aws configure
+add AWS access key 
+&
+AWS secret Access key
+
+******Create the Playbook for creating managed nodes*********
+ vi ec2-playbook.yml
+
+---
+- hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Execute curl command to get token
+      shell: "curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600'"
+      register: TOKEN
+
+    - name: Get region of instance
+      shell: "curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' http://169.254.169.254/latest/meta-data/placement/region/"
+      register: region
+
+    - name: Get AMI ID of instance
+      shell: "curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' http://169.254.169.254/latest/meta-data/ami-id"
+      register: ami_id
+
+    - name: Get keypair of instance
+      shell: "curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' http://169.254.169.254/latest/meta-data/public-keys/| cut -c 3-100 "
+      register: kp
+
+    - name: Get Instance Type of instance
+      shell: "curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' http://169.254.169.254/latest/meta-data/instance-type"
+      register: instance_type
+
+
+    - name: Get subnet id of instance
+      shell: "curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' -v http://169.254.169.254/latest/meta-data/network/interfaces/macs/$(curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' -v http://169.254.169.254/latest/meta-data/network/interfaces/macs)/subnet-id"
+      register: subnet
+
+    - name: Get security group of instance
+      shell: "curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' -v http://169.254.169.254/latest/meta-data/network/interfaces/macs/$(curl -H 'X-aws-ec2-metadata-token:{{ TOKEN.stdout }}' -v http://169.254.169.254/latest/meta-data/network/interfaces/macs)/security-group-ids/"
+      register: secgrp
+
+
+    - name: Generate SSH keypair
+      openssh_keypair:
+        force: yes
+        path: /home/ec2-user/.ssh/id_rsa
+
+    - name: Get the public key
+      shell: cat /home/ec2-user/.ssh/id_rsa.pub
+      register: pubkey
+
+    - name: Create EC2 instance
+      ec2:
+        key_name: "{{ kp.stdout }}"
+        group_id: "{{ secgrp.stdout }}"
+        instance_type: "{{ instance_type.stdout }}"
+        image: "{{ ami_id.stdout }}"         # "ami-0931978297f275f71"
+        wait: true
+        region: "{{ region.stdout }}"
+        instance_tags:
+          Name: "{{ item }}"
+        vpc_subnet_id: "{{ subnet.stdout }}"
+        assign_public_ip: yes
+        user_data: |
+           #!/bin/bash
+           echo "{{ pubkey.stdout }}" >> /home/ec2-user/.ssh/authorized_keys
+      register: ec2var
+      loop:
+          - managed-node-1
+          - managed-node-2
+
+    - name: Make ansible directory
+      file:
+        path: /etc/ansible
+        state: directory
+      become: yes
+
+    - debug:
+        msg: "{{ ec2var.results[0].instances[0].private_ip }}"
+
+    - debug:
+        msg: "{{ ec2var.results[1].instances[0].private_ip }}"
+
+
+save the file
+
+ansible-playbook ec2-playbook.yml
+
+
+
+# Once you get the ip addresses, do the following:
+sudo vi /etc/ansible/hosts
+
+# Add the prive IP addresses, by pressing "INSERT" 
+node1 ansible_ssh_host=node1-private-ip ansible_ssh_user=ec2-user
+node2 ansible_ssh_host=node2-private-ip ansible_ssh_user=ec2-user
+
+e.g. node1 ansible_ssh_host=172.31.14.113 ansible_ssh_user=ec2-user
+     node2 ansible_ssh_host=172.31.2.229 ansible_ssh_user=ec2-user
+
+
+# Save the file using "ESCAPE + :wq!"
+
+# list all managed node ip addresses.
+ansible all --list-hosts
+
+# SSH into each of them and set the hostnames.
+ssh ec2-user@< Replace Node 1 IP >
+sudo hostnamectl set-hostname managed-node-1
+exit
+
+ssh ec2-user@< Replace Node 2 IP >
+sudo hostnamectl set-hostname managed-node-2
+exit
+
+# Use ping module to check if the managed nodes are able to interpret the ansible modules
+ansible all -m ping
+
+################################
+Lab 2: Exploring Ad-Hoc Commands
+################################
+
+sudo vi /etc/ansible/hosts
+
+# Add the given line, by pressing "INSERT" 
+# add localhost and add the connection as local so that it wont try to use ssh
+localhost ansible_connection=local
+# save the file using "ESCAPE + :wq!"
+
+# In real life situations, one of the managed node may be used as the ansible control node.
+# In such cases, we can make it a managed node, by adding localhost in hosts inventory file.
+
+
+# get memory details of the hosts using the below ad-hoc command
+ansible all -m command -a "free -h"
+OR
+ansible all -a "free -h"
+
+# Create a user ansible-new in the 2 nodes + the control node
+# This creates the new user and the home directory /home/ansible-new
+ansible all -m user -a "name=ansible-new" --become
+
+# lists all users in the machine. Check if ansible-new is present in the managed nodes / localhost
+ansible node1 -a "cat /etc/passwd"
+
+# List all directories in /home. Ensure that directory 'ansible-new' is present in /home. 
+ansible node2 -a "ls /home"
+
+
+# Change the permission mode from '700' to '755' for the new home directory created for ansible-new
+ansible node1 -m file -a "dest=/home/ansible-new mode=755" --become
+
+
+# Check if the permissions got changed
+ansible node1 -a "sudo ls -l /home"
+
+
+# Create a new file in the new dir in node 1
+ansible node1 -m file -a "dest=/home/ansible-new/demo.txt mode=600 state=touch" --become
+
+
+# Check if the permissions got changed
+ansible node1 -a "sudo ls -l /home/ansible-new/"
+
+
+# Add content into the file
+ansible node1 -b -m lineinfile -a 'dest=/home/ansible-new/demo.txt line="This server is managed by Ansible"'
+
+
+# check if the lines are added in demo.txt
+ansible node1 -a "sudo cat /home/ansible-new/demo.txt"
+
+
+# You can remove the line using parameter state=absent
+ansible node1 -b -m lineinfile -a 'dest=/home/ansible-new/demo.txt line="This server is managed by Ansible" state=absent'
+
+# check if the lines are removed from demo.txt
+ansible node1 -b -a "sudo cat /home/ansible-new/demo.txt"
+
+# Now copy a file from ansible-control node to host node 1
+touch test.txt
+echo "This file will be copied to managed node using copy module" >> test.txt
+
+ansible node1 -m copy -a "src=test.txt dest=/home/ansible-new/test" -b
+# --become can be replaced by -b
+
+# check if the file got copied to managed node.
+ansible node1 -b -a "sudo ls -l /home/ansible-new/test"
+
+sudo vi /etc/ansible/hosts
+
+# Remove the below line from hosts inventory file. 
+localhost ansible_connection=local
+
+# save the file using "ESCAPE + :wq!"
