@@ -226,3 +226,31 @@ sudo vi /etc/ansible/hosts
 localhost ansible_connection=local
 
 # save the file using "ESCAPE + :wq!"
+
+================================================================================
+Playbook
+-----------------
+vi first.yml
+
+---
+- name: first play
+  hosts: all
+  become: yes
+  tasks:
+    - name: create a directory
+      file:
+        path: /test
+        state: directory
+    - name: create a new file
+      file:
+        path: demo.txt
+        mode: 0664
+        state: touch
+
+ save it
+
+ansible-playbook first.yml
+
+ansible all -m command -a "ls -l"
+
+
