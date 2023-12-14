@@ -253,4 +253,50 @@ ansible-playbook first.yml
 
 ansible all -m command -a "ls -l"
 
+===========================================================
+--------------
+Lab3:
+--------------
+vi install-apache.yml
+---
+- name: This play will install apache web servers on all the hosts
+  hosts: all
+  become: yes
+  tasks:
+    - name: Task1 will install httpd using yum
+      yum:
+        name: httpd
+        update_cache: yes
+        state: latest
+    - name: Task2 will upload custom index.html into all hosts
+      copy:
+       src: "index.html"
+       dest: "/var/www/html/index.html"
+    - name: Task3 will setup attributes for file
+      file:
+        path: /var/www/html/index.html
+        owner: apache
+        group: apache
+        mode:  0644
+    - name: Task4 will start the httpd
+      service:
+        name: httpd
+        state: started
+
+save the file
+
+vi index.html
+<html>
+  <body>
+  <h1>Welcome to CloudThat</h1>
+  <img src= "https://d3ffutjd2e35ce.cloudfront.net/assets/logo1.png" >
+  </body>
+</html>
+
+save the file
+
+# ansible-playbook install-apache.yml
+
+ # curl 10.142.0.24     (private ip of vm)
+ # curl 10.142.0.23
 
