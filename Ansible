@@ -299,4 +299,97 @@ save the file
 
  # curl 10.142.0.24     (private ip of vm)
  # curl 10.142.0.23
+=================================================================
+--------------
+Lab4:
+------------------
+vi putfile.yml
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Creating a new user cloudthat
+      user:
+        name: cloudthat
+    - name: Creating a directory for the new user
+      file:
+        path: /home/cloudthat/test
+        state: directory
 
+save the file
+
+# ansible-playbook putfile.yml
+
+
+# ansible all -m command -a "tail -n 2 /etc/passwd"
+#  ansible all -m command -a "ls -l /home/cloudthat" -b    (-b is become root user)
+
+
+Lab4a:
+
+vi p2.yml
+---
+- hosts: all
+  become: yes
+  tasks:
+    -   name: Creating a new user test
+        user:
+          name: test
+    -   name: Creating a directory for the new user
+        file:
+          path: /home/test/demo
+          state: directory
+    -   name: creating a folder named ansible
+        file:
+          path: /home/test/ansible
+          state: directory
+    -   name: creating a file within the folder ansible
+        file:
+          path: /home/test/ansible/hello.txt
+          state: touch
+    -   name: Changing owner and group with permission for the file within the folder named ansible
+        file:
+          path: /home/test/ansible/hello.txt
+          owner: root
+          group: test
+          mode: 0665
+    -   name: adding a block of string to the file created named hello.txt
+        blockinfile:
+          path: /home/test/ansible/hello.txt
+          block: |
+            This is line 1
+            This is line 2
+
+save the file
+
+# ansible-playbook p2.yml
+
+#  ansible all -a "sudo cat /home/test/ansible/hello.txt"
+
+
+Task 2: Uninstalling Apache Service
+=========================================
+
+vi service.yml
+---
+- hosts: all
+  become: yes
+  tasks:
+   - name: uninstalling httpd
+     yum:
+        name: httpd
+        state: absent
+   - name: Downloading a file
+     get_url:
+        url: https://s3.ap-south-1.amazonaws.com/files.cloudthat.training/devops/ansible-essentials/sql_permissions.txt
+        dest: /tmp/
+   - name: Disable SElinux without using command and shell
+     selinux:
+        state: disabled
+
+save the file
+
+# ansible-playbook service.yml
+# ansible all -m command -a "yum list httpd" -b
+# ansible all -m command -a "ls -l /tmp" -b
+# ansible all -m command -a "getenforce" -b
