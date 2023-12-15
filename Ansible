@@ -510,3 +510,77 @@ vi index.html
 </html>
 
 # ansible-playbook implement-vars1.yml
+=========================================================
+Lab 6 Task Inclusion
+==============================
+add the line in the inventory
+
+vi /etc/ansible/hosts
+
+localhost ansible_connection=local
+
+save the file
+
+
+vi first.yaml
+---
+- hosts: localhost
+  gather_facts: no
+  become: yes
+  tasks:
+  - name: install common packages
+    yum:
+      name: [wget, curl]
+      state: present
+
+  - name: inclue task for httpd installation
+    include_tasks: second.yaml
+
+save the file
+
+vi second.yaml
+---
+  - name: install the httpd package
+    yum:
+      name: httpd
+      state: latest
+      update_cache: yes
+
+  - name: start the httpd service
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+
+save the file
+
+now  run the first file
+
+# ansible-playbook first.yaml
+
+
+vi third.yaml
+---
+- hosts: localhost
+  gather_facts: no
+  become: yes
+  tasks:
+  - name: install common packages
+    yum:
+      name: [wget, curl]
+      state: present
+    register: out
+
+  - name: list result of previous task
+    debug:
+      msg: "{{ out.rc}}"
+
+  - name: inclue task for httpd installation
+    include_tasks: second.yaml
+    when: out.rc == 0
+
+
+Now run the third file
+
+ansible-playbook third.yaml
+
