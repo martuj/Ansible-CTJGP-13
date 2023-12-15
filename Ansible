@@ -393,3 +393,120 @@ save the file
 # ansible all -m command -a "yum list httpd" -b
 # ansible all -m command -a "ls -l /tmp" -b
 # ansible all -m command -a "getenforce" -b
+
+=====================================================
+
+Lab 5: Implementing Ansible Variables
+
+Task 1: Configuring packages in ansible using variables
+--------------------------------
+
+vi implement-vars.yml
+---
+- hosts: '{{ hostname }}'
+  become: yes
+  vars:
+    hostname: all
+    package1: httpd
+    destination: /var/www/html/index.html
+    source: /home/ec2-user/lab5/file/index.html  #control node path
+  tasks:
+    - name: Install defined package
+      yum:
+        name: '{{ package1 }}'
+        update_cache: yes   # refresh the caches before applying whatever change is necessary
+        state: latest
+    - name: Start desired service
+      service:
+        name: '{{ package1 }}'
+        state: started
+    - name: copy required index.html to the document folder for httpd.
+      copy:
+        src: '{{ source }}'
+        dest: '{{ destination }}'
+
+save the file
+
+
+vi index.html
+
+<html>
+  <body>
+  <h1>Welcome to CloudThat</h1>
+  <h1>Welcome to variables</h1>
+  </body>
+</html>
+
+save the file
+
+ansible-playbook implement-vars.yml
+
+
+view page use the public ip address of the vm 
+
+
+Task 2: Implementing ansible variables using extra-vars option
+----------------------------------------
+# create new file in the same location
+
+vi index1.html
+<html>
+  <body>
+  <h1>This is the alternate Home Page</h1>
+  <img src= "https://d3ffutjd2e35ce.cloudfront.net/assets/logo1.png" >
+  </body>
+</html>
+
+[ec2-user@ansible file]$ pwd
+/home/ec2-user/lab5/file
+[ec2-user@ansible file]$
+
+
+# ansible-playbook implement-vars.yml --extra-vars "source=/home/ec2-user/lab5/file/index1.html"
+
+
+Task 3: Configuring variables as a separate file and implementing ansible playbook
+--------------------------------
+
+vi implement-vars1.yml
+---
+- hosts: '{{ hostname }}'
+  become: yes
+  vars_files:
+    - myvariables.yml
+  tasks:
+    - name: Install defined package
+      yum:
+        name: '{{ package1 }}'
+        update_cache: yes
+        state: latest
+    - name: Start desired service
+      service:
+        name: '{{ package1 }}'
+        state: started
+    - name: copy required index.html to the document folder for httpd.
+      copy:
+        src: '{{ source }}'
+        dest: '{{ destination }}'
+
+save the file
+
+vi myvariables.yml
+---
+hostname: all
+package1: httpd
+destination: /var/www/html/index.html
+source: /home/ec2-user/lab5/file/index.html
+
+
+save the file
+
+vi index.html
+<html>
+  <body>
+  <h1>Welcome to CloudThat</h1>
+  <h1>Welcome to variables</h1>
+  </body>
+</html>
+
+# ansible-playbook implement-vars1.yml
