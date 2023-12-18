@@ -583,4 +583,65 @@ vi third.yaml
 Now run the third file
 
 ansible-playbook third.yaml
+=================================================================================
+##########################################################################################
+Lab 7: Implementing Ansible Vault
+###########################################################################################
+# Switch to labs directory inside /home/ec2-user
+  cd ~/labs 
 
+
+# Create a sample playbook using below.
+
+  vi implement-vault.yml
+
+---
+- hosts: all
+  tasks:
+  - file:
+        path: /home/ec2-user/test.conf
+        state: touch
+        owner: ec2-user
+        group: ec2-user
+        mode: 0644
+
+
+  # Encrypt the playbook using vault using encrypt option
+  ansible-vault encrypt implement-vault.yml
+
+
+  # Verify that the playbook contents are encrypted
+  cat implement-vault.yml
+
+
+
+  # View the playbook contents (in plaintext) without decrypting by providing the password used for encryption
+  ansible-vault view implement-vault.yml
+
+
+ # To execute the playbook, you need to pass additional option (--ask-vault-pass) as below
+  ansible-playbook --ask-vault-pass implement-vault.yml
+
+
+  # To make any changes to the playbook without decrypting, use edit 
+  ansible-vault edit implement-vault.yml
+  
+
+  # Execute the playbook with changes
+  ansible-playbook --ask-vault-pass implement-vault.yml
+
+
+  # Use rekey option to change the vault password
+  ansible-vault rekey implement-vault.yml
+  
+
+  # Verify the playbook contents are encrypted
+  cat implement-vault.yml
+
+
+  # Decrypt the contents using decrypt option
+  ansible-vault decrypt implement-vault.yml
+
+
+  # Verify that playbook contents are visible in plain-text
+  cat implement-vault.yml
