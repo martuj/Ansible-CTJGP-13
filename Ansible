@@ -645,3 +645,68 @@ Lab 7: Implementing Ansible Vault
 
   # Verify that playbook contents are visible in plain-text
   cat implement-vault.yml
+===========================================================
+Task 1: Loops with Ansible Playbook
+=========================================================================
+
+
+vi looplab.yml
+---
+- hosts: all
+  become: yes
+  tasks:
+   - name: creating users
+     user:
+       name: "{{ item }}"
+       state: present
+     with_items:
+      - userX
+      - userY
+      - userZ
+
+# save the file using "ESCAPE + :wq!"
+
+# Execute the playbook
+$ ansible-playbook looplab.yml
+
+
+#Verify if the users mentioned in the list were added by using an Ansible ad-hoc command
+ansible all -a "tail -n 3 /etc/passwd"
+
+==========================================================================================
+Task 2: Tags with Ansible Playbooks
+==========================================================================================
+# Create and edit tagslabs.yml in the same labs directory 
+
+
+vi tagslabs.yml
+---
+- hosts: all
+  become: yes
+  user: ec2-user
+  connection: ssh
+  gather_facts: no
+  tasks:
+    - name: Install telnet
+      yum: pkg=telnet state=latest
+      tags:
+        - packages
+    - name: Verifying telnet installation
+      raw: yum list installed | grep telnet > /home/ec2-user/pkg.log
+      tags:
+        - logging
+
+
+
+#save the file using "ESCAPE + :wq!"
+
+#Execute the playbook
+$ ansible-playbook tagslabs.yml
+
+#Run the playbook again, this time using tags. Notice that only the tasks associated with the mentioned tags are running
+
+$ ansible-playbook -t "logging" tagslabs.yml
+
+$ ansible-playbook -t "packages" tagslabs.yml
+
+
