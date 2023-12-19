@@ -1080,4 +1080,60 @@ $ ansible-playbook implement-java.yml
 $ ansible all -a "java -version"
 
 ***********************************************************************************************************************************
+Configuring HTTPS listener in Windows:
+open powershell as administrator and follow the below step
+Note: 1) below private ip address in the aws console you can get DNS name
+       2) Once you run the 1st setp you will get the thumbprint copy that in the notepad 
+
+Step1: Create Certificate
+-New-SelfSignedCertificate -DnsName "DNS Name" -CertStoreLocation Cert:\LocalMachine\My
+example:-
+New-SelfSignedCertificate -DnsName "ec2-54-234-230-57.compute-1.amazonaws.com" -CertStoreLocation Cert:\LocalMachine\My
+
+-Step2: add port in the security group as below
+Whitelist port 5985(winrm-http) and 5986(winrm-https) in the security group of the the windows server.
+
+-Step3: Create HTTPS Listener
+winrm create winrm/config/Listener?Address=*+Transport=HTTPS '@{Hostname="DNS Name"; CertificateThumbprint="Thumbprint"}'
+example:-
+winrm create winrm/config/Listener?Address=*+Transport=HTTPS '@{Hostname="ec2-54-234-230-57.compute-1.amazonaws.com"; CertificateThumbprint="E58292FFF7F80A9799055F8C723CA0DEDD0715B1"}'
+
+
+-Step4:Add  new firewall rule for 5986
+
+netsh advfirewall firewall add rule name="Windows Remote Management (HTTPS-In)" dir=in action=allow protocol=TCP localport=5986
+
+-Step5:Check the listener and make sure https listener is there.
+
+winrm e winrm/config/Listener
+
+- Check The Service
+
+winrm get winrm/config
+
+-Make sure the Basic Auth is set to true, if not then execute below commands.
+
+Set-Item -Force WSMan:\localhost\Service\auth\Basic $true
+
+
+
+==========================================================
+
+On Ansible Control node
+
+=================================
+update the inventry file as following
+==============================================
+sudo vi /etc/ansible/hosts
+
+windows ansible_host=172.31.44.232 ansible_password=EYsPYs&b5TPBrsNvVnpicc0o.VV?GCD& ansible_connection=winrm ansible_port=5986 ansible_user=administrator ansible_winrm_server_cert_validation=ignore ansible_winrm_transport=basic
+
+save it
+
+To ping from ansible control node to windows server
+==============================================
+ ansible windows -m win_ping
+
+you will get the response..
+
 
