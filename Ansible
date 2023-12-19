@@ -981,7 +981,7 @@ $ tree /home/ec2-user/ansible-labs
 
 # Lets create the code for Role labs
 $ cd ~/
-$ mkdir ansible-labs
+
 $ mkdir role-labs && cd role-labs
 
 mkdir role-labs;cd role-labs
