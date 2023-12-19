@@ -914,6 +914,52 @@ $ ansible-playbook blklab.yml
 
 #Notice that the tasks under rescue are not running as block tasks ran successfully.
 
+#######################################################################################
+Lab 9: Implementing Jinja2 Templates
+######################################################################################
+  mkdir templates
+  cd templates
+
+#Create a template file as below
+
+vi new-motd.j2
+
+System information is as below
+Operatingsystem: '{{ operatingsystem }}'
+Architecture: '{{ architecture }}'
+DistributionVersion: '{{ distribution }}'
+
+
+# Create a playbook to implement jinja templates
+
+vi implement-jinja2.yml
+
+---
+- hosts: all
+  become: yes
+  vars:
+      operatingsystem: RedHat
+      architecture: x64
+      distribution: 8.0
+  tasks:
+    - template:
+         src: new-motd.j2
+         dest: /etc/motd
+         owner: ec2-user
+         group: ec2-user
+         mode: 0644
+
+ #Now execute the playbook 
+
+$ ansible-playbook implement-jinja2.yml -b 
+
+ 
+
+#Now we will check what our template is exactly doing, where it is putting the values.
+#For that, do the following:
+
+$ ansible all -m shell -a "cat /etc/motd"
+
 ############################################################################################
 Lab 10: Implementing Ansible Roles
 ############################################################################################
@@ -988,7 +1034,6 @@ $ vi main.yml
 # Add the given content, by pressing "INSERT" 
 
 ---
-
 - name: install httpd
   yum: 
     name: httpd 
@@ -1115,12 +1160,8 @@ winrm get winrm/config
 
 Set-Item -Force WSMan:\localhost\Service\auth\Basic $true
 
-
-
 ==========================================================
-
 On Ansible Control node
-
 =================================
 update the inventry file as following
 ==============================================
