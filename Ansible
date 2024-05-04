@@ -22,12 +22,6 @@ sudo yum install python3-pip wget
 python3 --version
 sudo pip3 install --upgrade pip
 
-
-#Now we will check what our template is exactly doing, where it is putting the values.
-#For that, do the following:
-
-$ ansible all -m shell -a "cat /etc/motd"
-
 # Install awscli, boto, boto3 and ansible
 # Boto/Boto3 are AWS SDK which will be needed while accessing AWS APIs
 sudo pip3 install awscli boto boto3
