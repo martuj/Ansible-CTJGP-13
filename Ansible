@@ -1068,7 +1068,19 @@ $ vi implement-java.yml
      - geerlingguy.java
 
 # save the file using "ESCAPE + :wq!"
-
+===========================================
+[ec2-user@Control-Node role-labs]$ tree
+.
+├── dbrole
+│   └── tasks
+│       └── main.yml
+├── implement-roles.yml
+└── webrole
+    ├── files
+    │   └── index.html
+    └── tasks
+        └── main.yml
+=============================================
 # Before running the playbook, check if java is installed in managed nodes.
 ansible all -m command -a "java -version"
 # you will get error
