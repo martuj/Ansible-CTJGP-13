@@ -1092,7 +1092,7 @@ $ ansible-playbook implement-java.yml
 $ ansible all -a "java -version"
 
 ***********************************************************************************************************************************
-Configuring HTTPS listener in Windows:
+Self Practice:- Configuring HTTPS listener in Windows:
 open powershell as administrator and follow the below step
 Note: 1) below private ip address in the aws console you can get DNS name
        2) Once you run the 1st setp you will get the thumbprint copy that in the notepad 
