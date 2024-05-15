@@ -931,14 +931,11 @@ $ ansible-playbook /home/ec2-user/ansible-labs/uninstall-apache-pb.yml (Please p
 $ sudo yum install tree -y
 
 # You can view your home directory structure in tree format with below command tree 
-$ tree /home/ec2-user/ansible-labs
 
 # Lets create the code for Role labs
 $ cd ~/
 
 $ mkdir role-labs && cd role-labs
-
-mkdir role-labs;cd role-labs
 
 
 #Now inside the roles directory, create two different directories for different roles, namely webrole and dbrole. Then switch to the directory dbrole and then create tasks directory inside dbrole
